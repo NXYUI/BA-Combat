@@ -1,0 +1,55 @@
+# 매일 SchaleDB 학생 데이터를 받아 data 브랜치에 올린다. 앱은 data 브랜치의 students.json을 먼저 받는다.
+# 바뀐 내용이 있을 때만 커밋한다. 데이터 형식이 이상하면 스크립트가 실패해서 기존 데이터를 덮지 않는다.
+name: Sync student data
+
+on:
+  schedule:
+    - cron: '17 21 * * *' # 매일 06:17 (KST)
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/sync-students.yml
+      - .github/scripts/sync-students.mjs
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-students
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fetch SchaleDB student data
+        run: node .github/scripts/sync-students.mjs "$RUNNER_TEMP/out"
+
+      - name: Publish to the data branch
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git ls-remote --exit-code --heads origin data > /dev/null; then
+            git fetch --depth=1 origin data
+            git worktree add -B data "$RUNNER_TEMP/data" origin/data
+          else
+            git worktree add --orphan -b data "$RUNNER_TEMP/data"
+          fi
+          cp -r "$RUNNER_TEMP/out/." "$RUNNER_TEMP/data/"
+          cd "$RUNNER_TEMP/data"
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No changes in student data.'
+            exit 0
+          fi
+          git commit -m "Update student data ($(date -u +%Y-%m-%d))"
+          git push origin data
