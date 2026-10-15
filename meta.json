@@ -9,6 +9,10 @@
       "https://schaledb.com/data/kr/localization.min.json"
     ],
     "count": 278,
-    "sha256": "22dbcab9b3a0019bf9fb049b8f388702224d4f403e1277d244e0e07a3f0e833f"
+    "sha256": "c19849d9f01c84cfb25f0fca4d33f66df2acd7d22a45555cdc8a0192b7553686"
+  },
+  "icons": {
+    "student": 278,
+    "skill": 146
   }
 }
